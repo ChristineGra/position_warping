@@ -1,0 +1,16 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from affinewarp.datasets import jittered_data
+from affinewarp import ShiftWarping
+
+
+# Generate data using helper function.
+data = jittered_data(t=np.linspace(-10,10,150), jitter=2, noise=.2)[-1]  # shape [num_trials, num_timebins, num
+
+# Plot data.
+plt.imshow(np.squeeze(data), aspect='auto')
+plt.title('raw data'), plt.xlabel('time (a.u.)'), plt.ylabel('trials')
+plt.colorbar()
+plt.show(block=True)
+
+

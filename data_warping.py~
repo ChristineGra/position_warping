@@ -1,0 +1,199 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from affinewarp.datasets import jittered_data
+from affinewarp import ShiftWarping, PiecewiseWarping
+from affinewarp import SpikeData
+from affinewarp.crossval import heldout_transform
+import os
+import math
+from scipy.signal import argrelextrema
+
+
+# helper function to rotate point on to x axis (anticlockwise)
+def rotate(origin, point, angle):
+        ox, oy = origin
+        px, py = point
+
+        newx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+        newy = oy + math.cos(angle) * (py - oy) - math.sin(angle) * (py - oy)
+        return newx, newy
+
+
+################### paths to files needed #########################
+# whl file -> positions (x1, y1, x2, y2) for two LEDs; either choose one or take average
+path_whl = '/storage/antsiro/data/blab/kenji/ec013.752_769/ec013.752_769.whl'
+
+# res file -> spike times
+path_res = '/storage/antsiro/data/blab/kenji/ec013.752_769/ec013.752_769.res.5'
+
+# clu file -> neuron id per spike (1st line is total number of clusters; 
+# clusters-2 is total number of neurons -> exclude spikes with 0 and 1)
+path_clu = '/storage/antsiro/data/blab/kenji/ec013.752_769/ec013.752_769.clu.5'
+
+# code file 
+path_code = '/storage2/perentos/code/python/conda/affinewarp/affinewarp/data_warping.py'
+
+
+#################### global variables ###############################
+# spikes are recorded with a resolution of 20000
+res_spikes = 20000
+
+# positions are recorded with a resolution of 39
+res_pos = 39
+
+# load files
+whl_data = np.genfromtxt(path_whl)
+res_data = np.genfromtxt(path_res)
+clu_data = np.genfromtxt(path_clu)
+print("data loading done")
+
+# 1: extract boundaries of trials for different orientations
+# TODO compute boundaries, the following are hard coded by looking at plots
+lim1 = -500000  # beginning of first maze experiment
+lim2 = -394000  # end of first experiment / beginning of second experiment
+lim3 = -341000  # end of second/ beginning of third
+lim4 = -300000  # end of third
+
+# focus on horizontal experiment first
+data_selectionx = whl_data[lim3:lim4,0]
+data_selectiony = whl_data[lim3:lim4,1]
+
+# ignore -1 values -> -1 means no measurement
+data_selectionx = data_selectionx[data_selectionx > -1]
+data_selectiony = data_selectiony[data_selectiony > -1]
+
+
+def plot_position_figures(coeffs=None):
+	# plot x and y traces
+	plt.plot(data_selectionx, label="x")
+	plt.plot(data_selectiony, label="y")
+	plt.legend() 
+
+	# plot shape of maze: x and y in relation
+	plt.figure()
+	plt.xlabel("x positions")
+	plt.ylabel("y positions")
+	plt.scatter(data_selectionx, data_selectiony, s=2)
+
+	if coeffs is not None:
+		plt.plot(data_selectionx, coeffs[0] * data_selectionx + coeffs[1], color='red')
+
+	plt.show(block=True)
+
+
+# 2: ignore cells with less than 50 spikes
+
+# extract number of clusters
+n_clusters = clu_data[0]
+print("overall clusters: " + str(n_clusters))
+
+spikes_to_ignore = [0, 1]
+
+# go through all clusters except 0 and 1 and count spikes
+for i in range(2, int(n_clusters)):
+	# print(i)
+	count = (clu_data[1:] == float(i)).sum()
+	# print(count)
+
+	# ignore cluster if less than 50 spikes
+	if count < 50:
+		spikes_to_ignore.append(i)
+
+# final list of spikes to ignore
+print("list of clusters to ignore: " + str(spikes_to_ignore))
+
+# merge arrays for spike times and neuron IDs
+res_clu_array = np.vstack((res_data, clu_data[1:]))
+# print(res_clu_array.shape[1])
+
+# find indices to delete because cluster ID is 0, 1 or neuron has less than 50 spikes
+indices_to_delete = []
+for index, elem in zip(range(res_clu_array.shape[1]), res_clu_array[1, :]):
+	if elem in spikes_to_ignore:
+		indices_to_delete.append(index)
+
+res_clu_clear = np.delete(res_clu_array, indices_to_delete, axis=1)
+# print("cleared array: ", res_clu_clear)
+print("shape of cleared array: ", res_clu_clear.shape)
+
+# 3: convert spike times to positions
+
+for index, time in zip(range(res_clu_clear.shape[1]), res_clu_clear[0, :]):
+	pos_for_time = round((time * res_pos) / res_spikes)
+	res_clu_clear[0, index] = pos_for_time
+
+# res_clu_clear[0,:] contains positions in position resolution; res_clu_clear[1,:] contains ID of spiking neuron
+# print(res_clu_clear[:, :10])
+
+def plot_neuron_position_figure():
+	plt.scatter(res_clu_clear[1,:], res_clu_clear[0, :], s=2)
+	plt.xlabel("ID")
+	plt.ylabel("position")
+	plt.show(block=True)
+
+
+# 4: linearize positions
+
+# fit linear function on positional data
+coeffs = np.polyfit(data_selectionx, data_selectiony, deg=1)
+print("coefficients of fitted line: " ,coeffs)
+
+# test if function fits data
+# plot_position_figures(coeffs)
+
+# compute angle
+rad = math.atan(coeffs[0])
+angle = math.degrees(rad)
+print("angle: " , angle)
+
+# compute linearization -> x = cos(phi) * x
+
+new_x = []
+new_y = []
+
+# print(data_selectionx.shape)
+for x, y in zip(data_selectionx, data_selectiony):
+        newx, newy = rotate((0,0), (x, y), 2 * math.pi - rad)
+        new_y.append(newy)
+        new_x.append(newx)
+        
+# get positional trace over time
+
+#plt.plot(data_selectionx)
+plt.scatter(new_x,new_y, s=2, label='new')
+plt.scatter(data_selectionx, data_selectiony, s=2, label='old')
+plt.legend()
+plt.show(block=True)
+
+"""
+
+new_x = np.asarray(new_x)
+
+c_max_index = argrelextrema(new_x, np.greater, order=200)
+c_min_index = argrelextrema(new_x, np.less, order=450)
+
+def plot_max_min():
+	plt.plot(new_x)
+	plt.scatter(c_max_index[0],new_x[c_max_index[0]], linewidth=0.3, s=50, c='r')
+	plt.scatter(c_min_index[0],new_x[c_min_index[0]], linewidth=0.3, s=50, c='y')
+
+	plt.show(block=True)
+
+# plot first trial (until first maximum)
+# plt.plot(res_clu_clear[0,:c_max_index[0][0]])
+# plt.show(block=True)
+
+# TODO: fix linearization
+# TODO: separate trails with respect to min and max
+# TODO: annotate spikes with trials based on position 
+
+# 5: extract trials -> each direction is different trial
+
+"""
+
+
+
+
+
+
+
