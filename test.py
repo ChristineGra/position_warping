@@ -50,3 +50,4 @@ plt.scatter(zero_crossing, 0, label="zero crossing")
 plt.scatter(new_x, new_y, label="new")
 plt.legend()
 plt.show(block=True)
+

@@ -39,6 +39,7 @@ def load_spikedata(path):
                 if index == 0:
                         print(celltunings_selected.shape)
 
+        selected_trials = np.asarray(selected_trials)
         print(np.asarray(selected_trials).shape)  # shape (324, 119, 60) -> neurons x spike positions x trial
 
         # select neurons that fulfill criteria
@@ -47,12 +48,51 @@ def load_spikedata(path):
         SSI = data['tun']['SSI']
         meanFR = data['tun']['meanFR']
         muCC = data['tun']['muCC']
+        criteria = [SSI, meanFR, muCC]
 
         SSI_lower_limit = 0.2
         mean_FR_lower_limit = 0.2
         mean_FR_upper_limit = 5
         muCC_lower_limit = 0.6
 
+        selected_neurons = np.where((criteria[0] > SSI_lower_limit) & (criteria[1] > mean_FR_lower_limit) & \
+                                    (criteria[1] < mean_FR_upper_limit) & (criteria[2] > muCC_lower_limit), True, False)
+        print("number of selected neurons: ", len([i for i in selected_neurons[0] if i == True]))
+        # print(selected_neurons)
+        # print(selected_trials[0, :, 0])  # all positions at which neuron at index 0 spiked in trial 0
+
+        # selected_trials = np.asarray(selected_trials[selected_neurons[0]])
+        # print(selected_trials.shape)
+        selected_trials = selected_trials[selected_neurons[0]]
+        
+        neurons = neuronIDs[selected_neurons[0]]
+        print(neurons.shape)
+
+        result = [[], [], []]
+        # result[0].append(1)
+        # print(result)
+        
+        for i in range(neurons.shape[0]):
+                neuronID = neurons[i][0][0]
+
+                for trial in range(selected_trials.shape[2]):
+                        trialID = trial
+
+                        for position_index in range(selected_trials.shape[1]):
+                                   position = selected_trials[i, position_index, trial]
+                                   if position == 0:
+                                           continue
+                                   else:
+
+                                           result[0].append(neuronID)
+                                           result[1].append(trialID)
+                                           result[2].append(position)
+
+        # print(result[0][-200:])
+        # print(result[1][-200:])
+        # print(result[2][-200:])
+        path_datasets_folder = "datasets"
+        np.save(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"), result)
         
 # load data from file
 spikedata_raw = load_spikedata(path_to_data)
