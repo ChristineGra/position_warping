@@ -12,11 +12,11 @@ import pickle
 
 # load dataset to be analysed
 path_datasets_folder = "datasets"
-# [neuron, trial, position]
+# [spike position, trial number, spikeID]
+# NOTE: if version is changed, adjust start and end of trials?
 dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
-
 trials = [int(x) for x in dataset[1]]
-spike_positions = [x for x in dataset[2]]
+spike_positions = [int(x) for x in dataset[2]]
 spike_IDs = [int(x) for x in dataset[0]]
 
 spike_IDs_set = list(set(spike_IDs))
@@ -29,6 +29,9 @@ for id in range(len(spike_IDs)):
     new_index = spike_IDs_set.index(neuron)
     spike_IDs[id] = new_index
 
+print(set(spike_IDs))
+
+
 # create data object
 data = SpikeData(
     trials,
@@ -40,7 +43,7 @@ data = SpikeData(
 
 ############### Hyperparameters ###############################################
 # shift warping
-NBINS = int(120)    # Number of time bins per trial
+NBINS = int(200)    # Number of time bins per trial
 SMOOTH_REG = 10.0   # Strength of roughness penalty
 WARP_REG = 0.6      # Strength of penalty on warp magnitude
 L2_REG = 0.0        # Strength of L2 penalty on template magnitude
@@ -87,9 +90,13 @@ pwise3_model = PiecewiseWarping(
     smoothness_reg_scale=SMOOTHNESS_REG_SCALE,
 )
 
-models = [shift_model, linear_model, pwise1_model, pwise2_model, pwise3_model]
+models = [shift_model, linear_model, pwise1_model, pwise2_model]
 
-for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2', 'pwise-3')):
+neurons_to_plot = [i for i in new_spike_IDs if spike_IDs.count(i) > 15]
+neurons_to_plot = neurons_to_plot[:5]
+print("neurons to plot: ", neurons_to_plot)
+
+for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2')):
 
     # Fit and apply warping to held out neurons.
     validated_alignments = heldout_transform(
