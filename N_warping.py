@@ -2,7 +2,6 @@ import os
 
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 
 from affinewarp import SpikeData
 from affinewarp import ShiftWarping, PiecewiseWarping
@@ -44,7 +43,7 @@ data = SpikeData(
 
 ############### Hyperparameters ###############################################
 # shift warping
-NBINS = int(120)    # Number of time bins per trial
+NBINS = int(200)    # Number of time bins per trial
 SMOOTH_REG = 10.0   # Strength of roughness penalty
 WARP_REG = 0.6      # Strength of penalty on warp magnitude
 L2_REG = 0.0        # Strength of L2 penalty on template magnitude
@@ -59,17 +58,6 @@ NKNOTS_3 = 3
 WARP_REG_SCALE = 0.6  # penalizing the warping functions based on their distance from the identity line
 SMOOTHNESS_REG_SCALE = 10.0
 ###############################################################################
-def plot_column(axes, spike_data):
-    raster_kws = dict(s=4, c='k', lw=0)
-    for n, ax in zip(neurons_to_plot, axes):
-        ax.scatter(
-            spike_data.spiketimes[spike_data.neurons == n],
-            spike_data.trials[spike_data.neurons == n],
-            **raster_kws,
-        )
-        ax.set_xlabel("position")
-        ax.set_ylabel("trial")
-
 
 shift_model = ShiftWarping(
     maxlag=MAXLAG,
@@ -114,43 +102,13 @@ for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2')):
     validated_alignments = heldout_transform(
         model, data.bin_spikes(NBINS), data, iterations=50)
 
-    # filename = "validated_alignments_version1" + str(label)
-    # pickle_out = open(filename, 'wb')
-    # pickle.dump(validated_alignments, pickle_out)
-    # pickle_out.close()
+    # save validated alignments
+    saves_folder = "saves"
+    filename = os.path.join(saves_folder,"validated_alignments_" + str(label))
+    pickle_out = open(filename, 'wb')
+    pickle.dump(validated_alignments, pickle_out)
+    pickle_out.close()
 
-    # NOTE: various preprocessing and normalizations schemes (z-scoring,
-    # square-root-transforming the spike counts, etc.) could be tried here.
-
-    # Create figure.
-
-    fig, axes = plt.subplots(len(neurons_to_plot), 2, figsize=(9.5, 6))
-
-    # First column, raw data.
-    plot_column(
-        axes[:, 0], data
-    )
-
-    # Second column, shifted alignment.
-    plot_column(
-        axes[:, 1],
-        validated_alignments
-    )
-
-    fig.suptitle("Data")
-    axes[0, 0].set_title("raw data")
-    axes[0, 1].set_title("aligned by model (" + label + " warp)")
-
-    for index, axis in enumerate(axes[:, 0]):
-        axis.set_ylabel("n. " + str(neurons_to_plot[index]))
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=.9, top=0.9)
-
-    # save plots
-    path_plots_folder = "plots"
-    # plt.savefig(os.path.join(path_plots_folder, "n_version1_n0-4_"+str(label)))
-
-# plt.show(block=True)
 
 # line to add conda to path: export PATH=$PATH:/storage2/perentos/code/python/conda/anaconda/bin
 # https://askubuntu.com/questions/186808/every-command-fails-with-command-not-found-after-changing-bash-profile
