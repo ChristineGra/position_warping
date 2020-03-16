@@ -1,7 +1,9 @@
 import os
 
 import math
+import itertools
 import numpy as np
+from os import path
 
 from affinewarp import SpikeData
 from affinewarp import ShiftWarping, PiecewiseWarping
@@ -39,69 +41,96 @@ data = SpikeData(
 )
 
 ############### Hyperparameters ###############################################
+nbins_grid = [50, 120]
+iterations_grid = [50]
+smooth_reg_grid = [3, 8]
+warp_reg_grid = [0, 0.6]
+l2_reg_grid = [1e-7, 1e-5]
+max_lag_grid = [0.1, 0.25, 0.4]
+print(iterations_grid)
+
+"""
 # shift warping
 NBINS = int(120)    # Number of time bins per trial
 SMOOTH_REG = 10.0   # Strength of roughness penalty
-WARP_REG = 0.6      # Strength of penalty on warp magnitude
+WARP_REG = 0.6      # Strength of penalty on warp magnitude, penalizing the warping functions based on their distance from the identity line
 L2_REG = 0.0        # Strength of L2 penalty on template magnitude
 # TODO: what does this do, why does it allow shifts to 800?
 MAXLAG = 0.2        # Maximum amount of shift allowed.
-
+ITERATIONS = 80
+"""
 # piecewise warping
 NKNOTS_LINEAR = 0
 NKNOTS_1 = 1
 NKNOTS_2 = 2
 NKNOTS_3 = 3
-WARP_REG_SCALE = 0.6  # penalizing the warping functions based on their distance from the identity line
-SMOOTHNESS_REG_SCALE = 10.0
 ###############################################################################
 
-shift_model = ShiftWarping(
-    maxlag=MAXLAG,
-    smoothness_reg_scale=SMOOTH_REG,
-    warp_reg_scale=WARP_REG,
-    l2_reg_scale=L2_REG,
-)
 
-linear_model = PiecewiseWarping(
-    n_knots=NKNOTS_LINEAR,
-    warp_reg_scale=WARP_REG_SCALE,
-    smoothness_reg_scale=SMOOTHNESS_REG_SCALE,
-)
+for NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG in itertools.product(nbins_grid, iterations_grid, smooth_reg_grid, warp_reg_grid, l2_reg_grid, max_lag_grid):
+    print(NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG)
 
-pwise1_model = PiecewiseWarping(
-    n_knots=NKNOTS_1,
-    warp_reg_scale=WARP_REG_SCALE,
-    smoothness_reg_scale=SMOOTHNESS_REG_SCALE,
-)
+    shift_model = ShiftWarping(
+        maxlag=MAX_LAG,
+        smoothness_reg_scale=SMOOTH_REG,
+        warp_reg_scale=WARP_REG,
+        l2_reg_scale=L2_REG,
+    )
 
-pwise2_model = PiecewiseWarping(
-    n_knots=NKNOTS_2,
-    warp_reg_scale=WARP_REG_SCALE,
-    smoothness_reg_scale=SMOOTHNESS_REG_SCALE,
-)
+    linear_model = PiecewiseWarping(
+        n_knots=NKNOTS_LINEAR,
+        warp_reg_scale=WARP_REG,
+        smoothness_reg_scale=SMOOTH_REG,
+        l2_reg_scale=L2_REG,
+    )
 
-pwise3_model = PiecewiseWarping(
-    n_knots=NKNOTS_3,
-    warp_reg_scale=WARP_REG_SCALE,
-    smoothness_reg_scale=SMOOTHNESS_REG_SCALE,
-)
+    pwise1_model = PiecewiseWarping(
+        n_knots=NKNOTS_1,
+        warp_reg_scale=WARP_REG,
+        smoothness_reg_scale=SMOOTH_REG,
+        l2_reg_scale=L2_REG,
+    )
 
-models = [shift_model, linear_model, pwise1_model, pwise2_model, pwise3_model]
+    pwise2_model = PiecewiseWarping(
+        n_knots=NKNOTS_2,
+        warp_reg_scale=WARP_REG,
+        smoothness_reg_scale=SMOOTH_REG,
+        l2_reg_scale=L2_REG,
+    )
 
-for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2', 'pwise-3')):
+    pwise3_model = PiecewiseWarping(
+        n_knots=NKNOTS_3,
+        warp_reg_scale=WARP_REG,
+        smoothness_reg_scale=SMOOTH_REG,
+        l2_reg_scale=L2_REG,
+    )
 
-    # Fit and apply warping to held out neurons.
-    validated_alignments = heldout_transform(
-        model, data.bin_spikes(NBINS), data, iterations=50)
+    models = [shift_model, linear_model, pwise1_model, pwise2_model]
 
-    # save validated alignments
-    saves_folder = "saves"
-    filename = os.path.join(saves_folder,"validated_alignments_" + str(label))
-    pickle_out = open(filename, 'wb')
-    pickle.dump(validated_alignments, pickle_out)
-    pickle_out.close()
+    for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2')):
+        
+        saves_folder = "saves"
+        model_folder = str(label)
+        filename = "heldout_validated_alignments_" + str(label) + "_warpreg" + str(WARP_REG) + "_nbins" + str(NBINS) + "_iterations" + str(ITERATIONS) + "_l2reg" + str(L2_REG) + "_smoothreg" + str(SMOOTH_REG)
+        if label.startswith("shift"):
+            filename = filename + "_maxlag" + str(MAX_LAG)
+
+        path_file = os.path.join(saves_folder, model_folder, filename)
+        if path.exists(path_file):
+            print("already computed, skip")
+            continue
+
+        # Fit and apply warping to held out neurons.
+        validated_alignments = heldout_transform(
+            model, data.bin_spikes(NBINS), data, iterations=ITERATIONS)
+
+        # save validated alignments
+        
+        pickle_out = open(path_file, 'wb')
+        pickle.dump(validated_alignments, pickle_out)
+        pickle_out.close()
 
 
 # line to add conda to path: export PATH=$PATH:/storage2/perentos/code/python/conda/anaconda/bin
 # https://askubuntu.com/questions/186808/every-command-fails-with-command-not-found-after-changing-bash-profile
+
