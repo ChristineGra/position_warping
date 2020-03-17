@@ -67,6 +67,12 @@ slices = [i for i in new_spike_IDs if i%10 == 0]
 slices.append(len(new_spike_IDs))
 print(slices)
 
+# get list of all files
+
+# for each file extract parameters
+
+# plot information
+
 for label in ['shift', 'linear', 'pwise-1', 'pwise-2', 'pwise-3']:
     saves_folder = "saves"
     filename = os.path.join(saves_folder,"validated_alignments_" + str(label))
