@@ -4,16 +4,11 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import statistics
-
 from os import walk
-
 from affinewarp import SpikeData
-from affinewarp import ShiftWarping, PiecewiseWarping
-from affinewarp.crossval import heldout_transform
-
 import pickle
 
-# load original dataset
+# load original dataset for comparison
 path_datasets_folder = "datasets"
 # [neuron, trial, position]
 dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
@@ -47,27 +42,27 @@ pathname = "saves"
 
 files = []
 for (dirpath, dirnames, filenames) in walk(pathname):
-    files.extend(filenames)
+    files.extend(filenames)    
 
-# print(len(files))
-    
-
-# select a neuron ID
+# select a neuron ID (representative for all others)
 selected_neuronID = 31
 
-# create lists: nbins, smooth, warp, l2 (, lag)
+# create lists: [nbins, smooth, warp, l2 (, lag)]
 shift_model = [ [[],[]] for i in range(4)]
 shift_model.append([[],[],[]])
 linear_model = [ [[],[]] for i in range(4)]
 p1_model =  [ [[],[]] for i in range(4)]
 p2_model =  [ [[],[]] for i in range(4)]
+model_list = [shift_model, linear_model, p1_model, p2_model]
 
+# parameter values used for alignments
 nbins_list = [50, 120]
 iterations_list = [50]
 smooth_list = [3, 8]
 warp_list = [0.0, 0.6]
 l2_list = [1e-7, 1e-5]
 lag_list = [0.1, 0.25, 0.4]
+param_list = [nbins_list, smooth_list, warp_list, l2_list, lag_list]
 
 
 # for every dataset:
@@ -124,7 +119,6 @@ for fi in files:
             diffs.append(diff)
 
     avg_diff = statistics.mean(diffs)
-    # print(avg_diff)
 
     # find correct places in lists to append value
     if model_label == "shift":
@@ -144,6 +138,7 @@ for fi in files:
     if maxlag is not 0:
         maxlag_index =  lag_list.index(maxlag)
 
+    # append value
     list_sel[0][bins_index].append(avg_diff)
     list_sel[1][smooth_index].append(avg_diff)
     list_sel[2][warp_index].append(avg_diff)
@@ -151,6 +146,26 @@ for fi in files:
     if maxlag is not 0:
         list_sel[4][maxlag_index].append(avg_diff)
 
-print(shift_model)
+print("sorting done")
 
-# TODO: visualize
+# visualization
+
+# iterate through models
+for model, model_title in zip(model_list, ["shift", "linear", "pwise-1", "pwise-2"]):
+    
+    # iterate through parameters
+    for parameter, param_title in zip(range(len(model)), ["number of bins", "smooth reg", "warp reg", "l2 reg", "max lag reg"]):
+        
+        plt.figure()
+        plt.title(model_title + " warping: " + param_title)
+        plt.xlabel("value of parameter")
+        plt.ylabel("average shift")
+        save_path = os.path.join("plots", model_title, param_title)
+        
+        # iterate through different values of parameter
+        for ind, pos, value in zip(range(len(model[parameter])), [0.5, 1.5, 2.5], param_list[parameter]):
+            data = model[parameter][ind]
+            # plot boxplot
+            plt.boxplot(data, positions=[pos], labels=[str(value)])
+           # save figure 
+        plt.savefig(save_path)
