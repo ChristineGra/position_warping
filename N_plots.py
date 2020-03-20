@@ -14,23 +14,34 @@ import pickle
 def plot_column(axes1, axes2, spike_data, neurons_to_plot):
     raster_kws = dict(s=4, c='k', lw=0)
     limit = math.ceil(len(neurons_to_plot)/2)
+
+    # account for negative or positive shift over boundary
+    new_spikepositions = []
+    for spkpos in spike_data.spiketimes:
+        new_spkpos = spkpos
+        while new_spkpos < spike_data.tmin:
+            new_spkpos = new_spkpos + spike_data.tmax
+        while new_spkpos > spike_data.tmax:
+            new_spkpos = new_spkpos - spike_data.tmax
+        new_spikepositions.append(int(new_spkpos))
+
+    # spike_data.spiketimes = np.asarray(new_spikepositions)
+
+    # plot first half of neurons in left part
     for n, ax in zip(neurons_to_plot[:limit], axes1):
         ax.scatter(
             spike_data.spiketimes[spike_data.neurons == n],
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
-        ax.set_xlabel("position")
-        ax.set_ylabel("trial")
 
+    # plot second half of neurons in right part
     for n, ax in zip(neurons_to_plot[limit:], axes2):
         ax.scatter(
             spike_data.spiketimes[spike_data.neurons == n],
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
-        ax.set_xlabel("position")
-        ax.set_ylabel("trial")
 
 
 # load dataset to be analysed
@@ -62,6 +73,7 @@ data = SpikeData(
     tmax=150,  # end of trials
 )
 
+
 new_spike_IDs = list(set(spike_IDs))
 slices = [i for i in new_spike_IDs if i%10 == 0]
 slices.append(len(new_spike_IDs))
@@ -73,12 +85,15 @@ print(slices)
 
 # plot information
 
-for label in ['shift', 'linear', 'pwise-1', 'pwise-2', 'pwise-3']:
+for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
     saves_folder = "saves"
-    filename = os.path.join(saves_folder,"validated_alignments_" + str(label))
+    filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
+    if label == 'shift':
+        filename = filename + "_maxlag0.4"
+        
     pickle_in = open(filename, 'rb')
     validated_alignments = pickle.load(pickle_in)
-
+  
     for slice1, slice2 in zip(slices[:-1], slices[1:]):
         neurons_to_plot = list(set(spike_IDs))[slice1: slice2]
         print(neurons_to_plot)
@@ -101,16 +116,23 @@ for label in ['shift', 'linear', 'pwise-1', 'pwise-2', 'pwise-3']:
             validated_alignments, neurons_to_plot
         )
 
-        fig.suptitle("Data")
+        fig.suptitle("Data for " + label + " warp")
         axes[0, 0].set_title("raw data")
-        axes[0, 1].set_title("aligned by model (" + label + " warp)")
+        axes[0, 2].set_title("raw data")
+        axes[0, 1].set_title("aligned by model")
+        axes[0, 3].set_title("aligned by model")
+
+        for ax in axes[:, 0]:
+            ax.set_ylabel("trial")
+        for  ax in axes[-1, :]:
+            ax.set_xlabel("position")
         
         # for index, axis in enumerate(axes[:, 0]):
             # axis.set_ylabel("n. " + str(neurons_to_plot[index]))
-            # fig.subplots_adjust(hspace=.9, top=0.9)
+        fig.subplots_adjust(hspace=.3, top=0.9)
         
         # save plots
         path_plots_folder = "plots"
-        plt.savefig(os.path.join(path_plots_folder, label, "n_neuron" + str(slice1) + "-" + str(slice2)))
+        plt.savefig(os.path.join(path_plots_folder, label, "new_n_neuron" + str(slice1) + "-" + str(slice2)))
 
 # plt.show(block=True)
