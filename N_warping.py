@@ -15,7 +15,7 @@ import pickle
 # load dataset to be analysed
 path_datasets_folder = "datasets"
 # [neuron, trial, position]
-dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
+dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02_new.npy"))
 
 trials = [int(x) for x in dataset[1]]
 spike_positions = [x for x in dataset[2]]
@@ -24,12 +24,17 @@ spike_IDs = [int(x) for x in dataset[0]]
 spike_IDs_set = list(set(spike_IDs))
 print(spike_IDs_set)
 spike_IDs_set.sort()
+print(spike_IDs_set[15:17])
 new_spike_IDs = range(len(spike_IDs_set))
+# print(spike_IDs[500:750])
 
 for id in range(len(spike_IDs)):
     neuron = spike_IDs[id]
     new_index = spike_IDs_set.index(neuron)
     spike_IDs[id] = new_index
+
+print(list(set(spike_IDs)))
+# print(spike_IDs[500:750])
 
 # create data object
 data = SpikeData(
@@ -41,12 +46,12 @@ data = SpikeData(
 )
 
 ############### Hyperparameters ###############################################
-nbins_grid = [50, 120]
+nbins_grid = [50]  # , 120]
 iterations_grid = [50]
-smooth_reg_grid = [3, 8]
-warp_reg_grid = [0, 0.6]
-l2_reg_grid = [1e-7, 1e-5]
-max_lag_grid = [0.1, 0.25, 0.4]
+smooth_reg_grid = [3]  # , 8]
+warp_reg_grid = [0]  # , 0.6]
+l2_reg_grid = [1e-7]  # , 1e-5]
+max_lag_grid = [0.1]  # , 0.25, 0.4]
 print(iterations_grid)
 
 """
@@ -105,7 +110,7 @@ for NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG in itertools.produc
         l2_reg_scale=L2_REG,
     )
 
-    models = [shift_model, linear_model, pwise1_model, pwise2_model]
+    models = [shift_model]  # , linear_model, pwise1_model, pwise2_model]
 
     # iterate over models
     for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2')):
@@ -117,7 +122,7 @@ for NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG in itertools.produc
         if label.startswith("shift"):
             filename = filename + "_maxlag" + str(MAX_LAG)
 
-        path_file = os.path.join(saves_folder, model_folder, filename)
+        path_file = os.path.join(saves_folder, model_folder, filename + "new")
         if path.exists(path_file):
             print("already computed, skip")
             continue

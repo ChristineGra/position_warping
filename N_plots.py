@@ -48,7 +48,9 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
 # load dataset to be analysed
 path_datasets_folder = "datasets"
 # dataset format: [neuron, trial, position]
-dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
+dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02_new.npy"))
+print(dataset.shape)
+
 trials = [int(x) for x in dataset[1]]
 spike_positions = [int(x) for x in dataset[2]]
 spike_IDs = [int(x) for x in dataset[0]]
@@ -86,11 +88,12 @@ print(slices)
 
 # plot information
 
-for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
+for label in ['shift']:  # , 'linear', 'pwise-1', 'pwise-2']:
     saves_folder = "saves"
-    filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
-    if label == 'shift':
-        filename = filename + "_maxlag0.4"
+    # filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
+    # if label == 'shift':
+        # filename = filename + "_maxlag0.4"
+    filename = os.path.join(saves_folder, "shift", "heldout_validated_alignments_shift_warpreg0_nbins50_iterations50_l2reg1e-07_smoothreg3_maxlag0.1new")
         
     pickle_in = open(filename, 'rb')
     validated_alignments = pickle.load(pickle_in)
@@ -135,6 +138,6 @@ for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
         
         # save plots
         path_plots_folder = "plots"
-        plt.savefig(os.path.join(path_plots_folder, label, "new_n_neuron" + str(slice1) + "-" + str(slice2)))
+        # plt.savefig(os.path.join(path_plots_folder, label, "new_n_neuron" + str(slice1) + "-" + str(slice2)))
 
-# plt.show(block=True)
+plt.show(block=True)
