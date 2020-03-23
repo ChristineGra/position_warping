@@ -25,6 +25,7 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
             new_spkpos = new_spkpos - spike_data.tmax
         new_spikepositions.append(int(new_spkpos))
 
+    # use this line to map shifts over boundaries to beginning/ end
     # spike_data.spiketimes = np.asarray(new_spikepositions)
 
     # plot first half of neurons in left part
@@ -46,7 +47,7 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
 
 # load dataset to be analysed
 path_datasets_folder = "datasets"
-# [neuron, trial, position]
+# dataset format: [neuron, trial, position]
 dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
 trials = [int(x) for x in dataset[1]]
 spike_positions = [int(x) for x in dataset[2]]
@@ -73,7 +74,7 @@ data = SpikeData(
     tmax=150,  # end of trials
 )
 
-
+# determine spikes to plot together
 new_spike_IDs = list(set(spike_IDs))
 slices = [i for i in new_spike_IDs if i%10 == 0]
 slices.append(len(new_spike_IDs))
@@ -110,12 +111,13 @@ for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
             axes[:, 0], axes[:, 2], data, neurons_to_plot
         )
 
-        # Third column, shifted alignment.
+        # Second column, shifted alignment.
         plot_column(
             axes[:, 1], axes[:, 3],
             validated_alignments, neurons_to_plot
         )
 
+        # annotate plots
         fig.suptitle("Data for " + label + " warp")
         axes[0, 0].set_title("raw data")
         axes[0, 2].set_title("raw data")

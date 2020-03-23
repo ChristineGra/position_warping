@@ -37,7 +37,7 @@ data = SpikeData(
 
 ########################################################################################################
 
-# find all datasets
+# find all saved validated datasets
 pathname = "saves"
 
 files = []
@@ -167,5 +167,5 @@ for model, model_title in zip(model_list, ["shift", "linear", "pwise-1", "pwise-
             data = model[parameter][ind]
             # plot boxplot
             plt.boxplot(data, positions=[pos], labels=[str(value)])
-           # save figure 
+        # save figure 
         plt.savefig(save_path)

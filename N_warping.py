@@ -107,8 +107,10 @@ for NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG in itertools.produc
 
     models = [shift_model, linear_model, pwise1_model, pwise2_model]
 
+    # iterate over models
     for model, label in zip(models, ('shift', 'linear', 'pwise-1', 'pwise-2')):
-        
+
+        # check whether file already exists
         saves_folder = "saves"
         model_folder = str(label)
         filename = "heldout_validated_alignments_" + str(label) + "_warpreg" + str(WARP_REG) + "_nbins" + str(NBINS) + "_iterations" + str(ITERATIONS) + "_l2reg" + str(L2_REG) + "_smoothreg" + str(SMOOTH_REG)
@@ -125,12 +127,9 @@ for NBINS, ITERATIONS, SMOOTH_REG, WARP_REG, L2_REG, MAX_LAG in itertools.produc
             model, data.bin_spikes(NBINS), data, iterations=ITERATIONS)
 
         # save validated alignments
-        
         pickle_out = open(path_file, 'wb')
         pickle.dump(validated_alignments, pickle_out)
         pickle_out.close()
 
 
-# line to add conda to path: export PATH=$PATH:/storage2/perentos/code/python/conda/anaconda/bin
-# https://askubuntu.com/questions/186808/every-command-fails-with-command-not-found-after-changing-bash-profile
-
+# run with: python N_warping.py [path to dataset] [optional: model, smooth reg, warp reg, l2 reg, max lag, n bins, n iterations]
