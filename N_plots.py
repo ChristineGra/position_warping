@@ -50,10 +50,12 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
-        ax.set_xlim(right=xlim)
+        ax.set_xlim(left=0, right=xlim)
+        ax.set_ylim(ymin=0, ymax=60)
+        ax.set_yticks([30])
         ax2 = ax.twinx()
         ax2.plot(FRkeys, FRvalues, c='r')
-        ax2.set_ylim(ymin=0, ymax=120)
+        ax2.set_ylim(ymin=0, ymax=130)
 
     # plot second half of neurons in right part
     for n, ax in zip(neurons_to_plot[limit:], axes2):
@@ -63,10 +65,12 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
-        ax.set_xlim(right=xlim)
+        ax.set_xlim(left=0, right=xlim)
+        ax.set_ylim(ymin=0, ymax=60)
+        ax.set_yticks([30])
         ax2 = ax.twinx()
         ax2.plot(FRkeys, FRvalues, c='r')
-        ax2.set_ylim(ymin=0, ymax=100)
+        ax2.set_ylim(ymin=0, ymax=130)
 
 
 #######################################################################################
@@ -115,7 +119,7 @@ print(slices)
 
 for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
     saves_folder = "saves"
-    filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
+    filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0_nbins50_iterations50_l2reg1e-07_smoothreg8")
     if label == 'shift':
         filename = filename + "_maxlag0.4"
         
@@ -158,10 +162,10 @@ for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
         
         # for index, axis in enumerate(axes[:, 0]):
             # axis.set_ylabel("n. " + str(neurons_to_plot[index]))
-        fig.subplots_adjust(hspace=.3, top=0.9)
+        fig.subplots_adjust(hspace=.3, wspace=.4, top=0.9)
         
         # save plots
         path_plots_folder = "plots"
-        plt.savefig(os.path.join(path_plots_folder, label, "FR_n_neuron" + str(slice1) + "-" + str(slice2) + "warp06nbins120_binned"))
+        plt.savefig(os.path.join(path_plots_folder, label, "binned_warp0_nbins50", "FR_n_neuron" + str(slice1) + "-" + str(slice2) + "warp0nbins50_binned"))
 
 # plt.show(block=True)
