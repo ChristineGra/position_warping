@@ -12,16 +12,13 @@ from affinewarp.crossval import heldout_transform
 import pickle
 
 
-def compute_mean_FR(spike_data):
-    # for neuron in list(set(spike_data.neurons)):
-    neuron = 16
+def compute_mean_FR(spike_data, neuron):
     occurrances = Counter(spike_data.spiketimes[spike_data.neurons == neuron])
     # print(occurrances)
     values = [float(x) for x in occurrances.values()]
     keys = [float(x) for x in occurrances.keys()]
     keys_sorted, values_sorted = zip(*sorted(zip(keys, values)))
-    plt.plot(keys_sorted, values_sorted)
-    plt.show(block=True)
+    return keys_sorted, values_sorted
 
     
 def map_over_boundaries(spike_data):
@@ -41,25 +38,35 @@ def map_over_boundaries(spike_data):
 def plot_column(axes1, axes2, spike_data, neurons_to_plot):
     raster_kws = dict(s=4, c='k', lw=0)
     limit = math.ceil(len(neurons_to_plot)/2)
-    
+    xlim = 100
     # use this line to map shifts over boundaries to beginning/ end
     # spike_data.spiketimes = map_over_boundaries(spike_data)
 
     # plot first half of neurons in left part
     for n, ax in zip(neurons_to_plot[:limit], axes1):
+        FRkeys, FRvalues = compute_mean_FR(spike_data, n)
         ax.scatter(
             spike_data.spiketimes[spike_data.neurons == n],
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
+        ax.set_xlim(right=xlim)
+        ax2 = ax.twinx()
+        ax2.plot(FRkeys, FRvalues, c='r')
+        ax2.set_ylim(ymin=0, ymax=120)
 
     # plot second half of neurons in right part
     for n, ax in zip(neurons_to_plot[limit:], axes2):
+        FRkeys, FRvalues = compute_mean_FR(spike_data, n)
         ax.scatter(
             spike_data.spiketimes[spike_data.neurons == n],
             spike_data.trials[spike_data.neurons == n],
             **raster_kws,
         )
+        ax.set_xlim(right=xlim)
+        ax2 = ax.twinx()
+        ax2.plot(FRkeys, FRvalues, c='r')
+        ax2.set_ylim(ymin=0, ymax=100)
 
 
 #######################################################################################
@@ -90,8 +97,8 @@ data = SpikeData(
     trials,
     spike_positions,
     spike_IDs,
-    tmin=0,  # start of trials
-    tmax=150,  # end of trials
+    tmin=None,  # start of trials
+    tmax=None,  # end of trials
 )
 
 # determine spikes to plot together
@@ -100,21 +107,17 @@ slices = [i for i in new_spike_IDs if i%10 == 0]
 slices.append(len(new_spike_IDs))
 print(slices)
 
-compute_mean_FR(data)
-exit()
-
 # get list of all files
 
 # for each file extract parameters
 
 # plot information
 
-for label in ['shift']:  # , 'linear', 'pwise-1', 'pwise-2']:
+for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
     saves_folder = "saves"
-    # filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
-    # if label == 'shift':
-        # filename = filename + "_maxlag0.4"
-    filename = os.path.join(saves_folder, "shift", "heldout_validated_alignments_shift_warpreg0_nbins50_iterations50_l2reg1e-07_smoothreg3_maxlag0.1new")
+    filename = os.path.join(saves_folder, label,"heldout_validated_alignments_" + str(label) + "_warpreg0.6_nbins120_iterations50_l2reg1e-07_smoothreg8")
+    if label == 'shift':
+        filename = filename + "_maxlag0.4"
         
     pickle_in = open(filename, 'rb')
     validated_alignments = pickle.load(pickle_in)
@@ -159,6 +162,6 @@ for label in ['shift']:  # , 'linear', 'pwise-1', 'pwise-2']:
         
         # save plots
         path_plots_folder = "plots"
-        # plt.savefig(os.path.join(path_plots_folder, label, "new_n_neuron" + str(slice1) + "-" + str(slice2)))
+        plt.savefig(os.path.join(path_plots_folder, label, "FR_n_neuron" + str(slice1) + "-" + str(slice2)))
 
 # plt.show(block=True)
