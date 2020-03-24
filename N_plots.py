@@ -13,8 +13,8 @@ import pickle
 
 
 def compute_mean_FR(spike_data, neuron):
-    occurrances = Counter(spike_data.spiketimes[spike_data.neurons == neuron])
-    # print(occurrances)
+    int_spikes = [int(x) for x in spike_data.spiketimes[spike_data.neurons == neuron]]
+    occurrances = Counter(int_spikes)
     values = [float(x) for x in occurrances.values()]
     keys = [float(x) for x in occurrances.keys()]
     keys_sorted, values_sorted = zip(*sorted(zip(keys, values)))
@@ -97,8 +97,8 @@ data = SpikeData(
     trials,
     spike_positions,
     spike_IDs,
-    tmin=None,  # start of trials
-    tmax=None,  # end of trials
+    tmin=0,  # start of trials
+    tmax=150,  # end of trials
 )
 
 # determine spikes to plot together
@@ -162,6 +162,6 @@ for label in ['shift', 'linear', 'pwise-1', 'pwise-2']:
         
         # save plots
         path_plots_folder = "plots"
-        plt.savefig(os.path.join(path_plots_folder, label, "FR_n_neuron" + str(slice1) + "-" + str(slice2)))
+        plt.savefig(os.path.join(path_plots_folder, label, "FR_n_neuron" + str(slice1) + "-" + str(slice2) + "warp06nbins120_binned"))
 
 # plt.show(block=True)
