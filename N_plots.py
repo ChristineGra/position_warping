@@ -3,6 +3,7 @@ import os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
 
 from affinewarp import SpikeData
 from affinewarp import ShiftWarping, PiecewiseWarping
@@ -11,10 +12,19 @@ from affinewarp.crossval import heldout_transform
 import pickle
 
 
-def plot_column(axes1, axes2, spike_data, neurons_to_plot):
-    raster_kws = dict(s=4, c='k', lw=0)
-    limit = math.ceil(len(neurons_to_plot)/2)
+def compute_mean_FR(spike_data):
+    # for neuron in list(set(spike_data.neurons)):
+    neuron = 16
+    occurrances = Counter(spike_data.spiketimes[spike_data.neurons == neuron])
+    # print(occurrances)
+    values = [float(x) for x in occurrances.values()]
+    keys = [float(x) for x in occurrances.keys()]
+    keys_sorted, values_sorted = zip(*sorted(zip(keys, values)))
+    plt.plot(keys_sorted, values_sorted)
+    plt.show(block=True)
 
+    
+def map_over_boundaries(spike_data):
     # account for negative or positive shift over boundary
     new_spikepositions = []
     for spkpos in spike_data.spiketimes:
@@ -24,9 +34,16 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
         while new_spkpos > spike_data.tmax:
             new_spkpos = new_spkpos - spike_data.tmax
         new_spikepositions.append(int(new_spkpos))
+    return np.asarray(new_spikepositions)
 
+
+
+def plot_column(axes1, axes2, spike_data, neurons_to_plot):
+    raster_kws = dict(s=4, c='k', lw=0)
+    limit = math.ceil(len(neurons_to_plot)/2)
+    
     # use this line to map shifts over boundaries to beginning/ end
-    # spike_data.spiketimes = np.asarray(new_spikepositions)
+    # spike_data.spiketimes = map_over_boundaries(spike_data)
 
     # plot first half of neurons in left part
     for n, ax in zip(neurons_to_plot[:limit], axes1):
@@ -45,10 +62,11 @@ def plot_column(axes1, axes2, spike_data, neurons_to_plot):
         )
 
 
+#######################################################################################
 # load dataset to be analysed
 path_datasets_folder = "datasets"
 # dataset format: [neuron, trial, position]
-dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02_new.npy"))
+dataset = np.load(os.path.join(path_datasets_folder, "dataset_NP46_2019-12-02_18-47-02.npy"))
 print(dataset.shape)
 
 trials = [int(x) for x in dataset[1]]
@@ -56,9 +74,9 @@ spike_positions = [int(x) for x in dataset[2]]
 spike_IDs = [int(x) for x in dataset[0]]
 
 spike_IDs_set = list(set(spike_IDs))
-print(spike_IDs_set)
 spike_IDs_set.sort()
 new_spike_IDs = range(len(spike_IDs_set))
+print(spike_IDs_set)
 
 for id in range(len(spike_IDs)):
     neuron = spike_IDs[id]
@@ -81,6 +99,9 @@ new_spike_IDs = list(set(spike_IDs))
 slices = [i for i in new_spike_IDs if i%10 == 0]
 slices.append(len(new_spike_IDs))
 print(slices)
+
+compute_mean_FR(data)
+exit()
 
 # get list of all files
 
@@ -140,4 +161,4 @@ for label in ['shift']:  # , 'linear', 'pwise-1', 'pwise-2']:
         path_plots_folder = "plots"
         # plt.savefig(os.path.join(path_plots_folder, label, "new_n_neuron" + str(slice1) + "-" + str(slice2)))
 
-plt.show(block=True)
+# plt.show(block=True)
