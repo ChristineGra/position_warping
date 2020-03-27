@@ -8,9 +8,8 @@ import os
 import math
 from scipy.io import loadmat
 import pprint
+import argparse
 
-
-path_to_data = '/storage2/perentos/data/recordings/NP46/NP46_2019-12-02_18-47-02/processed/place_cell_tunings.mat'
 
 def plot_data(data, neuronID, axis, category):
         # plot data
@@ -26,7 +25,7 @@ def plot_data(data, neuronID, axis, category):
         axis.set_xticks([100])
 
         
-def visualize_multiple_neurons(slices, model, label, neurons, data_transformed, selected_trials):
+def visualize_multiple_neurons(slices, model, label, neurons, data_transformed, selected_trials, path_save):
         # plot neurons for each slice
         for slice1, slice2 in zip(slices[:-1], slices[1:]):
             # determine which neurons belong to slice
@@ -74,7 +73,7 @@ def visualize_multiple_neurons(slices, model, label, neurons, data_transformed, 
             plt.savefig(os.path.join(path_save, str(label) + "neuron" + str(slice1) + "-" + str(slice2)))
         
 
-def visualize_single_neurons(selected_trials, index, neuronID, data_transformed, label):
+def visualize_single_neurons(selected_trials, index, neuronID, data_transformed, label, path_save):
         # select data
         raw_data = selected_trials[:, :, index]
         raw_data = np.expand_dims(raw_data, -1)
@@ -189,19 +188,19 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         linear_model = PiecewiseWarping(n_knots=0, warp_reg_scale=warpreg, smoothness_reg_scale=smoothreg)
         p1_model = PiecewiseWarping(n_knots=1, warp_reg_scale=warpreg, smoothness_reg_scale=smoothreg)
         p2_model = PiecewiseWarping(n_knots=2, warp_reg_scale=warpreg, smoothness_reg_scale=smoothreg)
-        if model_selected is None:
+        if model_selected == None:
                 models = [shift_model, linear_model, p1_model, p2_model]
                 labels = ["shift", "linear", "piecewise-1", "piecewise-2"]
-        elif model_selected is "shift":
+        elif model_selected == "shift":
                 models = [shift_model]
                 labels = ["shift"]
-        elif model_selected is "linear":
+        elif model_selected == "linear":
                 models = [linear_model]
                 labels = ["linear"]
-        elif model_selected is "piecewise-1":
+        elif model_selected == "piecewise-1":
                 models = [p1_model]
                 labels = ["piecewise-1"]
-        elif model_selected is "piecewise-2":
+        elif model_selected == "piecewise-2":
                 models = [p2_model]
                 labels = ["piecewise-2"]
         else:
@@ -230,6 +229,24 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         
 
 
-neuron_list = np.asarray([6])
-path_save = os.path.join("plots", label)
-load_spikedata(path_to_data, neuron_list)
+if __name__ == '__main__':
+        parser = argparse.ArgumentParser(description='position warping for place cells', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+        parser.add_argument('path_to_data', metavar='path_to_data', type=str, help='path to data')
+        parser.add_argument('path_save', metavar='path_save', type=str, help='path to folder to save data in')
+        parser.add_argument('--neuron_list', nargs="+", metavar='neuron_list', type=int, help='list of preselected neurons, if not specified, neurons will be selected based on SSI, meanFR, muCC and cellType ',default=None, required=False)
+        parser.add_argument('--model_selected', metavar='model_selected', type=str, help='selected model, one of "shift", "linear", "piecewise-1" or "piecewise-2", if not specified, all models will be used',default=None, required=False)
+        parser.add_argument('--smoothreg', metavar='smoothreg', type=float, help='float between 0 and 10', default=5., required=False)
+        parser.add_argument('--warpreg', metavar='warpreg', type=float, help='float between 0 and 1', default=.3, required=False)
+        parser.add_argument('--l2reg', metavar='l2reg', type=float, help='float between 1e-7 and 0', default=1e-7, required=False)
+        parser.add_argument('--maxlagreg', metavar='maxlagreg', type=float, help='float between 0 and 0.5', default=.3, required=False)
+        parser.add_argument('--trial_selection', metavar='trial_selection', nargs="+", type=int, help='list of indices of first and (last+1) trials to model, to select all use number of trials +1 as second entry', default=[0,60], required=False)
+
+
+
+        # path_to_data = '/storage2/perentos/data/recordings/NP46/NP46_2019-12-02_18-47-02/processed/place_cell_tunings.mat'
+        # neuron_list = np.asarray([6, 511, 514])
+        # path_save = os.path.join("plots")
+        args = parser.parse_args()
+        print(args.model_selected)
+        load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection)
