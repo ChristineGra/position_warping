@@ -66,7 +66,7 @@ def visualize_multiple_neurons(slices, model, label, neurons, data_transformed, 
             plt.savefig(os.path.join("plots", label, "neuron" + str(slice1) + "-" + str(slice2) + str(label) + "_maxlag_warpreg03_smooth5"))
         
 
-def visualize_single_neurons(selected_trials, index, neuronID, data_transformed):
+def visualize_single_neurons(selected_trials, index, neuronID, data_transformed, label):
         # select data
         raw_data = selected_trials[:, :, index]
         raw_data = np.expand_dims(raw_data, -1)
@@ -81,6 +81,7 @@ def visualize_single_neurons(selected_trials, index, neuronID, data_transformed)
         title = str(neuronID)[2:-2] + "_raw"
         plt.title(title, fontsize=6)
         plt.xticks([100])
+        plt.savefig(os.path.join("plots", label, "neuron" + str(neuronID)[2: -2] + "_raw"))
 
          
         plt.figure()
@@ -92,9 +93,11 @@ def visualize_single_neurons(selected_trials, index, neuronID, data_transformed)
         title = str(neuronID)[2:-2] + "_transformed"
         plt.title(title, fontsize=6)
         plt.xticks([100])
+        plt.savefig(os.path.join("plots", label, "neuron" + str(neuronID)[2: -2] + "_transformed"))
+
         
 
-def load_spikedata(path):
+def load_spikedata(path, neuron_list=None):
         """
         Load npz file and configure dataset for warping
         the final data have to have format [trials, spiketimes, neuron_ids, tmin, tmax]
@@ -142,11 +145,14 @@ def load_spikedata(path):
         muCC_lower_limit = 0.6
 
         # select neurons that fulfill criteria
-        selected_neurons = np.where((criteria[0] > SSI_lower_limit) & (criteria[1] > mean_FR_lower_limit) & \
-                                    (criteria[1] < mean_FR_upper_limit) & (criteria[2] > muCC_lower_limit) & (criteria[3] == 2), True, False)
+        if neuron_list is not None:
+            selected_neurons = np.where(np.isin(neuronIDs, neuron_list), True, False)
+            selected_neurons = np.expand_dims(selected_neurons, 0)
+        else:
+            selected_neurons = np.where((criteria[0] > SSI_lower_limit) & (criteria[1] > mean_FR_lower_limit) & \
+                                        (criteria[1] < mean_FR_upper_limit) & (criteria[2] > muCC_lower_limit) & \
+                                        (criteria[3] == 2), True, False)
         
-        # selected_neurons = np.where(neuronIDs == 514, True, False)
-        # selected_neurons = np.expand_dims(selected_neurons, 0)
         # print(selected_neurons)
 
         print("number of selected neurons: ", len([i for i in selected_neurons[0] if i == True]))
@@ -182,12 +188,12 @@ def load_spikedata(path):
 
             if len(neurons) <= 2:
                 for neuronID, index in zip(neurons, range(len(neurons))):
-                        visualize_single_neurons(selected_trials, index, neuronID, data_transformed)
+                        visualize_single_neurons(selected_trials, index, neuronID, data_transformed, label)
             else:
                 visualize_multiple_neurons(slices, model, label, neurons, data_transformed, selected_trials)
             # plt.show(block=True)
         
 
 
-
-load_spikedata(path_to_data)
+neuron_list = np.asarray([6])
+load_spikedata(path_to_data, neuron_list)
