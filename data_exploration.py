@@ -156,7 +156,6 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         muCC = data['tun']['muCC']
         neuron_types = data['tun']['cellType']
         criteria = [SSI, meanFR, muCC, neuron_types]
-        print("SSI shape: ", np.asarray(SSI).shape)
 
         # criteria
         SSI_lower_limit = 0.2
@@ -176,13 +175,11 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
                                         (criteria[3] == 2), True, False)
 
         print("number of selected neurons: ", len([i for i in selected_neurons[0] if i == True]))
-        print("shape of selecetd neurons: ", selected_neurons.shape)
 
         # filter trials so that only selected neurons are taken into account
         selected_trials = selected_trials[selected_neurons[0]]
         # switch axes so that data can be used in model.fit: (num trials, num timepoints, num units)
         selected_trials = np.swapaxes(selected_trials, axis1=0, axis2=2)
-        print("selected trials shape: ", selected_trials.shape)
 
         # create model
         shift_model = ShiftWarping(maxlag=maxlagreg, smoothness_reg_scale=smoothreg, warp_reg_scale=warpreg, l2_reg_scale=l2reg)
@@ -214,31 +211,37 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         # compute slices to plot neurons
         slices = [i for i in range(len(neurons)) if i%12 == 0]
         slices.append(len(neurons) + 1)
-        print("slices: ", slices)
 
         for model, label in zip(models, labels):
             # fit model
             model.fit(selected_trials, iterations=30)
+
+            # if knots should be displayed
             if plot_knots == True:
+                    # print shifts for each trial if shift model is used
                     if label == "shift":
                         model_shifts = model.shifts
-                        print("model shifts :", model_shifts)
+                        print("shifts for every trial: ", model_shifts)
+                        
+                    # plot and print warping functions for every trial
                     else:
+                        # extract knot coordinated
                         x_knots = model.x_knots.T
                         y_knots = model.y_knots.T
 
+                        # print knot coordinates
                         for ind_trial in range(len(x_knots[0])):
                                 print("(x, y) coordinates of knots for trial " + str(trial_selection[0] + ind_trial) + ":")
                                 for ind_knot in range(len(x_knots)):
                                         print("(" + str(x_knots[ind_knot][ind_trial]) + ", " + str(y_knots[ind_knot][ind_trial]) + ")")
+                        # plot warping functions
                         plt.figure()
                         plt.plot(x_knots, y_knots)
                         plt.title("warping functions for model  " + label)
                         plt.xlabel("relative position in trial (0=start of trial, 1=end of trial)")
                         plt.ylabel("y position")
                         plt.savefig(os.path.join(path_save, str(label) + "knot_plot"))
-                        exit()
-            continue
+                        
             # transform data based on fitted model
             data_transformed = model.transform(selected_trials)
 
@@ -270,6 +273,4 @@ if __name__ == '__main__':
         # neuron_list = np.asarray([6, 511, 514])
         # path_save = os.path.join("plots")
         args = parser.parse_args()
-        print(args.model_selected)
-        print(args.plot_knots)
         load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection, args.plot_knots)
