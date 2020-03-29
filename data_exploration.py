@@ -113,7 +113,7 @@ def visualize_single_neurons(selected_trials, index, neuronID, data_transformed,
 
         
 
-def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoothreg=5., warpreg=.3, l2reg=1e-7, maxlagreg=.3, trial_selection=[0, 60]):
+def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoothreg=5., warpreg=.3, l2reg=1e-7, maxlagreg=.3, trial_selection=[0, 60], plot_knots=False):
         """
         Load mat file, configure dataset for warping, warp and plot
         data have to be continuous
@@ -126,6 +126,7 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         l2reg (optional): float between 1e-7 and 0, default 1e-7
         maxlagreg (optional): float between 0 and 0.5, default .3
         trial_selection (optional): list of indices of first and (last+1) trials to model, default [0, 60], to select all, use number of trials +1 as last index
+        plot_knots (optional): boolean to determine whether the fitted warping functions (piecewise model) or shifts per trial (shift model) will be plotted and printed to the terminal
         """
 
         # load .mat file
@@ -218,6 +219,26 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         for model, label in zip(models, labels):
             # fit model
             model.fit(selected_trials, iterations=30)
+            if plot_knots == True:
+                    if label == "shift":
+                        model_shifts = model.shifts
+                        print("model shifts :", model_shifts)
+                    else:
+                        x_knots = model.x_knots.T
+                        y_knots = model.y_knots.T
+
+                        for ind_trial in range(len(x_knots[0])):
+                                print("(x, y) coordinates of knots for trial " + str(trial_selection[0] + ind_trial) + ":")
+                                for ind_knot in range(len(x_knots)):
+                                        print("(" + str(x_knots[ind_knot][ind_trial]) + ", " + str(y_knots[ind_knot][ind_trial]) + ")")
+                        plt.figure()
+                        plt.plot(x_knots, y_knots)
+                        plt.title("warping functions for model  " + label)
+                        plt.xlabel("relative position in trial (0=start of trial, 1=end of trial)")
+                        plt.ylabel("y position")
+                        plt.savefig(os.path.join(path_save, str(label) + "knot_plot"))
+                        exit()
+            continue
             # transform data based on fitted model
             data_transformed = model.transform(selected_trials)
 
@@ -241,6 +262,7 @@ if __name__ == '__main__':
         parser.add_argument('--l2reg', metavar='l2reg', type=float, help='float between 1e-7 and 0', default=1e-7, required=False)
         parser.add_argument('--maxlagreg', metavar='maxlagreg', type=float, help='float between 0 and 0.5', default=.3, required=False)
         parser.add_argument('--trial_selection', metavar='trial_selection', nargs="+", type=int, help='list of indices of first and (last+1) trials to model, to select all use number of trials +1 as second entry', default=[0,60], required=False)
+        parser.add_argument('--plot_knots', metavar='plot_knots', type=bool, help='boolean to determine whether the fitted warping functions (piecewise model) or shifts per trial (shift model) will be plotted and printed to the terminal', default=False, required=False)
 
 
 
@@ -249,4 +271,5 @@ if __name__ == '__main__':
         # path_save = os.path.join("plots")
         args = parser.parse_args()
         print(args.model_selected)
-        load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection)
+        print(args.plot_knots)
+        load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection, args.plot_knots)
