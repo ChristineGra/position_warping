@@ -261,7 +261,8 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
                     'neurons_selected': neuron_list,
                     'trials_selected': trial_selection
             }
-            
+
+            # create unique filename to not overwrite other results
             now = datetime.datetime.now()
             filename = 'saves_' + str(label) + '_' + str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute) + str(now.second)
             
