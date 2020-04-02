@@ -133,6 +133,9 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         # load .mat file
         data = loadmat(path)
 
+        # print(data['tun'][0,0].dtype)
+        # exit()
+
         # data contains __header__, __version__, __globals__, tun
         # data[' __header__'] contains a lot of numbers
         # data['tun'] contains all the data
@@ -149,7 +152,7 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
 
         
         # select neurons
-        neuronIDs = np.asarray(data['tun']['cellID'][0])  # ID for each of 324 neurons
+        neuronIDs = np.asarray(data['tun']['cids'][0])  # ID for each of 324 neurons
 
         # extract parameters to select neurons
         SSI = data['tun']['SSI']
@@ -222,7 +225,14 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
                     # print shifts for each trial if shift model is used
                     if label == "shift":
                         model_shifts = model.shifts
-                        print("shifts for every trial: ", model_shifts)
+                        print("Number of timebins shifted: ", model_shifts)
+
+                        plt.figure()
+                        plt.scatter(model_shifts, range(len(model_shifts)), s=5)
+                        plt.title("Shifts computed with shift model")
+                        plt.ylabel("Trial")
+                        plt.xlabel("Number of timebins shifted")
+                        plt.savefig(os.path.join(path_save, "shift_plot"))
                         
                     # plot and print warping functions for every trial
                     else:
@@ -261,6 +271,11 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
                     'neurons_selected': neuron_list,
                     'trials_selected': trial_selection
             }
+
+            if label == "shift":
+                    data_dict.update({'model_shifts': model_shifts})
+            else:
+                    data_dict.update({'x_knots': x_knots}, {'y_knots': y_knots})
 
             # create unique filename to not overwrite other results
             now = datetime.datetime.now()
