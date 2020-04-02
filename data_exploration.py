@@ -7,8 +7,11 @@ from affinewarp.crossval import heldout_transform
 import os
 import math
 from scipy.io import loadmat
+from scipy.io import savemat
+import pickle
 import pprint
 import argparse
+import datetime
 
 
 def plot_data(data, neuronID, axis, category):
@@ -30,10 +33,8 @@ def visualize_multiple_neurons(slices, model, label, neurons, data_transformed, 
         for slice1, slice2 in zip(slices[:-1], slices[1:]):
             # determine which neurons belong to slice
             neurons_to_plot = neurons[slice1: slice2]
-            print(neurons_to_plot)
             # compute cutoff to place plots next to each other
             limit = math.ceil(len(neurons_to_plot)/2)
-            print(limit)
             # create subplots
             fig, axes = plt.subplots(limit, 4, figsize=(9.5, 6))
             fig.subplots_adjust(hspace=.4)
@@ -113,7 +114,7 @@ def visualize_single_neurons(selected_trials, index, neuronID, data_transformed,
 
         
 
-def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoothreg=5., warpreg=.3, l2reg=1e-7, maxlagreg=.3, trial_selection=[0, 60], plot_knots=False):
+def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoothreg=5., warpreg=.3, l2reg=1e-7, maxlagreg=.3, trial_selection=[0, 60], plot_knots=False, save_option='python_pickle'):
         """
         Load mat file, configure dataset for warping, warp and plot
         data have to be continuous
@@ -136,7 +137,7 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
         # data[' __header__'] contains a lot of numbers
         # data['tun'] contains all the data
 
-        celltunings = np.asarray(data['tun']['cellTunings'][0])  # for each of 324 neurons: position (119)  x trial (120) 
+        celltunings = np.asarray(data['tun']['tuning'][0])  # for each of 324 neurons: position (119)  x trial (120) 
         
         selected_trials = []
         # only select first 60 trials since
@@ -152,7 +153,7 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
 
         # extract parameters to select neurons
         SSI = data['tun']['SSI']
-        meanFR = data['tun']['meanFR']
+        meanFR = data['tun']['muFR']
         muCC = data['tun']['muCC']
         neuron_types = data['tun']['cellType']
         criteria = [SSI, meanFR, muCC, neuron_types]
@@ -245,6 +246,41 @@ def load_spikedata(path, path_save, neuron_list=None, model_selected=None, smoot
             # transform data based on fitted model
             data_transformed = model.transform(selected_trials)
 
+            # save data
+            if neuron_list == None:  # do this because None can't be saved
+                    neuron_list = 'all'
+                    
+            data_dict = {
+                    'raw_data': selected_trials,
+                    'transformed_data': data_transformed,
+                    'model_used': label,
+                    'smoothreg': smoothreg,
+                    'warpreg': warpreg,
+                    'l2reg': l2reg,
+                    'maxlagreg': maxlagreg,
+                    'neurons_selected': neuron_list,
+                    'trials_selected': trial_selection
+            }
+            
+            now = datetime.datetime.now()
+            filename = 'saves_' + str(label) + '_' + str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute) + str(now.second)
+            
+            if save_option == 'python_pickle':
+                    # save with pickle, default protocol
+                    filename = filename + '.p'
+                    save_file = os.path.join(path_save, filename)
+                    outfile = open(save_file, 'wb')
+                    pickle.dump(data_dict, outfile)
+                    outfile.close()
+                    
+            elif save_option == 'matlab':
+                    # save with savemat
+                    filename = filename + '.mat'
+                    save_file = os.path.join(path_save, filename)
+                    savemat(save_file, {'data_dict': data_dict})
+            else:
+                    print("save option invalid!")
+
             if len(neurons) <= 2:
                 for neuronID, index in zip(neurons, range(len(neurons))):
                         visualize_single_neurons(selected_trials, index, neuronID, data_transformed, label, path_save)
@@ -266,6 +302,7 @@ if __name__ == '__main__':
         parser.add_argument('--maxlagreg', metavar='maxlagreg', type=float, help='float between 0 and 0.5', default=.3, required=False)
         parser.add_argument('--trial_selection', metavar='trial_selection', nargs="+", type=int, help='list of indices of first and (last+1) trials to model, to select all use number of trials +1 as second entry', default=[0,60], required=False)
         parser.add_argument('--plot_knots', metavar='plot_knots', type=bool, help='boolean to determine whether the fitted warping functions (piecewise model) or shifts per trial (shift model) will be plotted and printed to the terminal', default=False, required=False)
+        parser.add_argument('--save_option', metavar='save_option', type=str, help='parameter that defines which datatype will be used for saving the data. Options are python_pickle and matlab', default='python_pickle', required=False)
 
 
 
@@ -273,4 +310,4 @@ if __name__ == '__main__':
         # neuron_list = np.asarray([6, 511, 514])
         # path_save = os.path.join("plots")
         args = parser.parse_args()
-        load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection, args.plot_knots)
+        load_spikedata(args.path_to_data, args.path_save, args.neuron_list, args.model_selected, args.smoothreg, args.warpreg, args.l2reg, args.maxlagreg, args.trial_selection, args.plot_knots, args.save_option)
