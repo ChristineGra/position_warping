@@ -1,4 +1,4 @@
-# position_warping
+# Position warping of place cell data
 
 This project was about aligning neuron activity from different trials to identify place cells with higher precision.
 
