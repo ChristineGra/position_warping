@@ -7,7 +7,19 @@ Place cell identification therefore plays a vital role in Hippocampus and learn
 
 Since the recordings are done by injecting electrodes into the region of interest and measuring single neurons in the head-fixed mice, followed by spike sorting, inaccuracies could be present in the data. Another problem is that a mouse does not necessarily run with the same speed in every trial, so the positional data could have a slight deviation. To account for this, Alex Williams et al. developed simple warping methods that are understandable and interpretable while still performing well, compared to other more complex warping methods [2]. 
 
+In the report I explain how the warping algorithm works and show results of applying warping on place cell data, as well as evaluating what influences different regularizations have on the algorithm.
+
 The functions that are used to align the spikes could be evaluated with respect to the experiments, e.g. do the knots of a piecewise linear function correspond with stopping of the mouse or could the slope of the function correspond with the speed of the mouse?
+
+
+
+### Implementation
+
+To implement position warping, I developed a Python script to fit the warping functions on experimental data. The warping functions were provided by a Python library found on GitHub (https://github.com/ahwillia/affinewarp). The library includes shift warping and piecewise warping functions that are applied to the datasets. Apart from the data, regularization parameters are passed when fitting the model. For spike data, a data structure is available to store the data in order to work with the warping functions, but for continuous data, the algorithms can be applied without preprocessing. 
+
+My implementation includes flexible selection of the model and the respective hyperparameters, as well as the option to select a subset of neurons or a subset of trials to be taken into account when fitting the model. Furthermore, the aligned data are visualized and stored automatically.
+
+The program is fully documented and can be called from the command line, providing additional information, however, you can find a user guide with examples at the end of the README file. The project can be found as an open source repository on GitHub (https://github.com/ChristineGra/position_warping) together with the development history.
 
 
 
@@ -23,9 +35,9 @@ The functions that are used to align the spikes could be evaluated with respect 
 in your directory
 
 5. Call script with path to your dataset and path to folder to save in as input parameter:
-  **Python data_exploration.py path_to_data path_save**
-  Optional parameters are a list of neurons to t the model on, a specific model, a list of trials to select and hyperparameters for the models. Further information on these parameters can be found with typing
-  **Python data_exploration.py -h**
+    **Python data_exploration.py path_to_data path_save**
+    Optional parameters are a list of neurons to t the model on, a specific model, a list of trials to select and hyperparameters for the models. Further information on these parameters can be found with typing
+    **Python data_exploration.py -h**
 
   
 
